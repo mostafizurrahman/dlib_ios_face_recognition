@@ -58,7 +58,7 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
         metaOutput.metadataObjectTypes = [AVMetadataObject.ObjectType.face]
         
         wrapper?.prepare()
-        
+        layer.transform = CATransform3DMakeScale(-1, 1, 1)
         session.startRunning()
     }
     
