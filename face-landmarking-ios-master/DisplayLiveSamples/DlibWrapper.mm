@@ -134,20 +134,21 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     std::vector<dlib::rectangle> convertedRectangles = [DlibWrapper convertCGRectValueArray:rects];
     
     // for every detected face
-    std::vector<matrix<rgb_pixel>> faces;
+    std::vector<matrix<bgr_pixel>> faces;
     for (unsigned long j = 0; j < convertedRectangles.size(); ++j)
     {
         dlib::rectangle oneFaceRect = convertedRectangles[j];
         
         // detect all landmarks
         dlib::full_object_detection shape = sp(img, oneFaceRect);
-        matrix<rgb_pixel> face_chip;
+        matrix<bgr_pixel> face_chip;
         extract_image_chip(img, get_face_chip_details(shape,150,0.25), face_chip);
         faces.push_back(move(face_chip));
         // and draw them into the image (samplebuffer)
+        UIImage *image = [self getImage:face_chip];
         for (unsigned long k = 0; k < shape.num_parts(); k++) {
             dlib::point p = shape.part(k);
-            draw_solid_circle(img, p, 5, dlib::rgb_pixel(0, 255, 255));
+            draw_solid_circle(img, p, 5, dlib::bgr_pixel(0, 255, 255));
         }
     }
     face_descriptors = net(faces);
@@ -209,12 +210,12 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     char * data = (char *)CGBitmapContextGetData(bmContext);
     for (int i = 0; i < pixels_h; i++){
         for(int j = 0; j < pixels_w; j++){
-            auto pixel = pixels(i, j);
-            long bufferLocation = position * 4; //(row * width + column) * 4;
-            data[bufferLocation] = pixel.blue;
-            data[bufferLocation + 1] = pixel.green;
-            data[bufferLocation + 2] = pixel.red;
-            data[bufferLocation + 3] = 1;
+//            auto pixel = pixels(i, j);
+//            long bufferLocation = position * 4; //(row * width + column) * 4;
+//            data[bufferLocation] = pixel.blue;
+//            data[bufferLocation + 1] = pixel.green;
+//            data[bufferLocation + 2] = pixel.red;
+//            data[bufferLocation + 3] = 1;
             position++;
         }
     }
