@@ -196,4 +196,34 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     return myConvertedRects;
 }
 
+-(UIImage *)getImage:(dlib::matrix<bgr_pixel>) pixels{
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    const int pixels_w = (int)pixels.nc();
+    const int pixels_h = (int)pixels.nr();
+    const int bytesPerRow = 4 * pixels_w;
+    CGContextRef bmContext = CGBitmapContextCreate(NULL, pixels_w,
+                                                   pixels_h, 8,bytesPerRow,
+                                                   colorSpace, kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedFirst);
+    CGColorSpaceRelease(colorSpace);
+    long position = 0;
+    char * data = (char *)CGBitmapContextGetData(bmContext);
+    for (int i = 0; i < pixels_h; i++){
+        for(int j = 0; j < pixels_w; j++){
+            auto pixel = pixels(i, j);
+            long bufferLocation = position * 4; //(row * width + column) * 4;
+            data[bufferLocation] = pixel.blue;
+            data[bufferLocation + 1] = pixel.green;
+            data[bufferLocation + 2] = pixel.red;
+            data[bufferLocation + 3] = 1;
+            position++;
+        }
+    }
+    CGImageRef newImage = CGBitmapContextCreateImage(bmContext);
+    
+    UIImage *image = [[UIImage alloc] initWithCGImage:newImage];
+    CGImageRelease(newImage);
+    CGContextRelease(bmContext);
+    return image;
+}
+
 @end
