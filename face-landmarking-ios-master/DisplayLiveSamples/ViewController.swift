@@ -14,6 +14,7 @@ class ViewController: UIViewController {
     
     @IBOutlet weak var preview: UIView!
     
+    @IBOutlet var btn: [UIButton]!
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
@@ -37,7 +38,23 @@ class ViewController: UIViewController {
         
         view.layoutIfNeeded()
 
-    }
+        for b in btn {
+            self.view.bringSubview(toFront: b)
+        }
 
+    }
+    
+    
+    @IBAction func train_image(_ sender: Any) {
+        sessionHandler.wrapper?.imageRecognize = true
+    }
+    
+    @IBAction func recog_nise(_ sender: Any) {
+        sessionHandler.wrapper?.imageRecognizeCheck = true
+        
+    }
+    
+    
+    
 }
 

@@ -95,7 +95,7 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     }
     
     dlib::array2d<dlib::bgr_pixel> img;
-    
+    matrix<rgb_pixel> img2;
     // MARK: magic
     CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
     CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
@@ -106,22 +106,25 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     
     // set_size expects rows, cols format
     img.set_size(height, width);
-    
+    img2.set_size(height, width);
     // copy samplebuffer image data into dlib image format
     img.reset();
     long position = 0;
     while (img.move_next()) {
         dlib::bgr_pixel& pixel = img.element();
-
+        dlib::rgb_pixel& rgbpx = img2(position);
         // assuming bgra format here
         long bufferLocation = position * 4; //(row * width + column) * 4;
         char b = baseBuffer[bufferLocation];
         char g = baseBuffer[bufferLocation + 1];
         char r = baseBuffer[bufferLocation + 2];
+        
         //        we do not need this
         //        char a = baseBuffer[bufferLocation + 3];
         
         dlib::bgr_pixel newpixel(b, g, r);
+        dlib::rgb_pixel rgbPixel(r,g,b);
+        rgbpx = rgbPixel;
         pixel = newpixel;
         
         position++;
@@ -134,32 +137,50 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     std::vector<dlib::rectangle> convertedRectangles = [DlibWrapper convertCGRectValueArray:rects];
     
     // for every detected face
-    std::vector<matrix<bgr_pixel>> faces;
+    std::vector<matrix<rgb_pixel>> faces;
     for (unsigned long j = 0; j < convertedRectangles.size(); ++j)
     {
         dlib::rectangle oneFaceRect = convertedRectangles[j];
         
         // detect all landmarks
         dlib::full_object_detection shape = sp(img, oneFaceRect);
-        matrix<bgr_pixel> face_chip;
-        extract_image_chip(img, get_face_chip_details(shape,150,0.25), face_chip);
+        
+        
+        
+        
+        matrix<rgb_pixel> face_chip;
+        extract_image_chip(img2, get_face_chip_details(shape,150,0.25), face_chip);
         faces.push_back(move(face_chip));
         // and draw them into the image (samplebuffer)
-        UIImage *image = [self getImage:face_chip];
+//        UIImage *image = [self getImage:face_chip];
         for (unsigned long k = 0; k < shape.num_parts(); k++) {
             dlib::point p = shape.part(k);
-            draw_solid_circle(img, p, 5, dlib::bgr_pixel(0, 255, 255));
+            draw_solid_circle(img, p, 5, dlib::rgb_pixel(0, 255, 255));
         }
     }
-    face_descriptors = net(faces);
+        std::vector<matrix<float,0,1>> desc = net(faces);
+    if (self.imageRecognize){
+        self.imageRecognize = false;
+        face_descriptors = desc;
+    }
     
-    for (int i = 0; i < face_descriptors.size(); i++){
-        const matrix<float,0,1> data = face_descriptors[i];
-        NSLog(@"column____ %ld_____row ____%ld",data.nc(),data.nr());
-        for (int j = 0; j < data.size(); j++ ){
-            NSLog(@"data is %f", data(0,j));
+    if (self.imageRecognizeCheck){
+        const float value = length(face_descriptors[0]-desc[0]);
+        if ( value < 0.5)
+        {
+            NSLog(@"recognized face found %f",value);
         }
     }
+    
+    
+    
+//    for (int i = 0; i < face_descriptors.size(); i++){
+//        const matrix<float,0,1> data = face_descriptors[i];
+//        NSLog(@"column____ %ld_____row ____%ld",data.nc(),data.nr());
+//        for (int j = 0; j < data.size(); j++ ){
+//            NSLog(@"data is %f", data(0,j));
+//        }
+//    }
     // lets put everything back where it belongs
     CVPixelBufferLockBaseAddress(imageBuffer, 0);
 
@@ -197,7 +218,7 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     return myConvertedRects;
 }
 
--(UIImage *)getImage:(dlib::matrix<bgr_pixel>) pixels{
+-(UIImage *)getImage:(dlib::matrix<rgb_pixel>) pixels{
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     const int pixels_w = (int)pixels.nc();
     const int pixels_h = (int)pixels.nr();
@@ -210,17 +231,17 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     char * data = (char *)CGBitmapContextGetData(bmContext);
     for (int i = 0; i < pixels_h; i++){
         for(int j = 0; j < pixels_w; j++){
-//            auto pixel = pixels(i, j);
-//            long bufferLocation = position * 4; //(row * width + column) * 4;
-//            data[bufferLocation] = pixel.blue;
-//            data[bufferLocation + 1] = pixel.green;
-//            data[bufferLocation + 2] = pixel.red;
-//            data[bufferLocation + 3] = 1;
+            auto pixel = pixels(i, j);
+            long bufferLocation = position * 4; //(row * width + column) * 4;
+            data[bufferLocation] = pixel.blue;
+            data[bufferLocation + 1] = pixel.green;
+            data[bufferLocation + 2] = pixel.red;
+            data[bufferLocation + 3] = 1;
             position++;
         }
     }
     CGImageRef newImage = CGBitmapContextCreateImage(bmContext);
-    
+
     UIImage *image = [[UIImage alloc] initWithCGImage:newImage];
     CGImageRelease(newImage);
     CGContextRelease(bmContext);

@@ -14,5 +14,6 @@
 - (instancetype)init;
 - (void)doWorkOnSampleBuffer:(CMSampleBufferRef)sampleBuffer inRects:(NSArray<NSValue *> *)rects;
 - (void)prepare;
-
+@property (readwrite) BOOL imageRecognize;
+@property (readwrite) BOOL imageRecognizeCheck;
 @end
