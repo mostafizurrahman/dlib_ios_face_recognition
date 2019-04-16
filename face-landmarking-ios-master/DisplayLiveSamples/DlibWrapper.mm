@@ -86,7 +86,7 @@ std::vector<matrix<rgb_pixel>> jitter_image(
 }
 
 - (void)prepare {
-    NSString *modelFileName = [[NSBundle mainBundle] pathForResource:@"shape_predictor_5_face_landmarks" ofType:@"dat"];
+    NSString *modelFileName = [[NSBundle mainBundle] pathForResource:@"shape_predictor_68_face_landmarks" ofType:@"dat"];
     std::string modelFileNameCString = [modelFileName UTF8String];
     
     dlib::deserialize(modelFileNameCString) >> sp;
@@ -203,7 +203,8 @@ std::vector<matrix<rgb_pixel>> jitter_image(
                 BOOL found = NO;
                 for (int index = 0; index < face_descriptors.size(); index++ ){
                     matrix<float,0,1> face_id = face_descriptors[index];
-                    if ( length(face_id - desc[0]) < 0.4){
+                    float value = length(face_id - desc[0]);
+                    if (value  < 0.4){
                         NSLog(@"face recognised previously");
                         found = YES;
                         break;

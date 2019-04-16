@@ -12,6 +12,7 @@ import AVFoundation
 class ViewController: UIViewController {
     let sessionHandler = SessionHandler()
     @IBOutlet weak var recogImageView: UIImageView!
+    @IBOutlet weak var findingLabel: UILabel!
     
     @IBOutlet weak var recogLable: UILabel!
     @IBOutlet weak var preview: UIView!
@@ -95,9 +96,11 @@ extension ViewController:RecognitionDelegate, UICollectionViewDelegate, UICollec
         DispatchQueue.main.async {
             self.recogImageView.image = image
             self.recogLable.isHidden = image == nil
+            
         }
     }
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         self.sessionHandler.wrapper?.recognize(at: indexPath.row)
+        self.findingLabel.isHidden = !(self.sessionHandler.wrapper?.imageRecognizeCheck ?? true)
     }
 }
