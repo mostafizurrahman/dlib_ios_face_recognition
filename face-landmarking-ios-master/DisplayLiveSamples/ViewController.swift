@@ -11,9 +11,11 @@ import AVFoundation
 
 class ViewController: UIViewController {
     let sessionHandler = SessionHandler()
+    @IBOutlet weak var recogImageView: UIImageView!
     
+    @IBOutlet weak var recogLable: UILabel!
     @IBOutlet weak var preview: UIView!
-    
+    var fid_array:[FaceID] = []
     @IBOutlet var btn: [UIButton]!
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -42,6 +44,8 @@ class ViewController: UIViewController {
             self.view.bringSubview(toFront: b)
         }
 
+        self.view.bringSubview(toFront: self.faceCollectionView)
+        self.sessionHandler.wrapper?.faceDelegate = self
     }
     
     
@@ -54,7 +58,46 @@ class ViewController: UIViewController {
         
     }
     
+    @IBOutlet weak var faceCollectionView: UICollectionView!
     
     
 }
 
+extension ViewController:RecognitionDelegate, UICollectionViewDelegate, UICollectionViewDataSource {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return self.fid_array.count
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "FID", for: indexPath)
+        if let _imageView = cell.viewWithTag(121) as? UIImageView {
+            _imageView.image = self.fid_array[indexPath.row].faceImage
+        }
+        return cell
+    }
+    
+    func didFoundFaces(_ fidArray: NSMutableArray!) {
+        self.fid_array = fidArray as! [FaceID]
+        DispatchQueue.main.async {
+            self.faceCollectionView.reloadData()
+        }
+    }
+    
+    func onFaceFound(_ faceID: FaceID!) {
+        self.fid_array.append(faceID)
+        DispatchQueue.main.async {
+            self.faceCollectionView.reloadData()
+        }
+    }
+    
+    
+    func onRecognised(_ image: UIImage?) {
+        DispatchQueue.main.async {
+            self.recogImageView.image = image
+            self.recogLable.isHidden = image == nil
+        }
+    }
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        self.sessionHandler.wrapper?.recognize(at: indexPath.row)
+    }
+}

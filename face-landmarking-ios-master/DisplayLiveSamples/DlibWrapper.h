@@ -8,7 +8,22 @@
 
 #import <Foundation/Foundation.h>
 #import <CoreMedia/CoreMedia.h>
+#import <UIKit/UIKit.h>
 
+
+
+
+@interface FaceID:NSObject
+@property (readwrite) NSInteger face_id;
+@property (readwrite) UIImage *faceImage;
+-(instancetype)init:(NSInteger)fid withImage:(UIImage *)_img;
+
+@end
+@protocol RecognitionDelegate<NSObject>
+-(void)didFoundFaces:(NSMutableArray *)fidArray;
+-(void)onFaceFound:(FaceID *)faceID;
+-(void)onRecognised:(nullable UIImage *)image;
+@end
 @interface DlibWrapper : NSObject
 
 - (instancetype)init;
@@ -16,4 +31,7 @@
 - (void)prepare;
 @property (readwrite) BOOL imageRecognize;
 @property (readwrite) BOOL imageRecognizeCheck;
+@property (readwrite, weak) id<RecognitionDelegate> faceDelegate;
+-(void)performRecognition;
+-(void)recognizeAt:(NSInteger)recIndex;
 @end

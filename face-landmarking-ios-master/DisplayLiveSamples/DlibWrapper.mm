@@ -7,7 +7,6 @@
 //
 
 #import "DlibWrapper.h"
-#import <UIKit/UIKit.h>
 
 #include <dlib/clustering.h>
 #include <dlib/string.h>
@@ -16,6 +15,8 @@
 #include <dlib/image_processing.h>
 #include <dlib/image_io.h>
 #include <dlib/dnn.h>
+
+
 using namespace dlib;
 using namespace std;
 template <template <int,template<typename>class,int,typename> class block, int N, template<typename>class BN, typename SUBNET>
@@ -55,6 +56,14 @@ input_rgb_image_sized<150>
 @implementation DlibWrapper {
     dlib::shape_predictor sp;
     std::vector<matrix<float,0,1>> face_descriptors;
+    matrix<float,0,1> input_descriptor;
+    UIImage *input_image;
+    NSInteger recCount;
+    NSMutableArray *fidArray;
+    
+    
+    
+    
 }
 anet_type net;
 
@@ -71,6 +80,8 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     if (self) {
         _prepared = NO;
     }
+    recCount = 0;
+    fidArray = [[NSMutableArray alloc] init];
     return self;
 }
 
@@ -86,6 +97,20 @@ std::vector<matrix<rgb_pixel>> jitter_image(
      std::string dnnFileNameCString = [dnnFileName UTF8String];
     dlib::deserialize(dnnFileNameCString) >> net;
     self.prepared = YES;
+}
+
+
+
+
+
+-(void)recognizeAt:(NSInteger)recIndex{
+    self.imageRecognizeCheck = !self.imageRecognizeCheck;
+    if (self.imageRecognizeCheck){
+        input_descriptor = face_descriptors[recIndex];
+        input_image = ((FaceID*)fidArray[recIndex]).faceImage;
+    } else {
+        [self.faceDelegate onRecognised:nil];
+    }
 }
 
 - (void)doWorkOnSampleBuffer:(CMSampleBufferRef)sampleBuffer inRects:(NSArray<NSValue *> *)rects {
@@ -137,87 +162,114 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     std::vector<dlib::rectangle> convertedRectangles = [DlibWrapper convertCGRectValueArray:rects];
     
     // for every detected face
-    std::vector<matrix<rgb_pixel>> faces;
+    
+    recCount++;
     for (unsigned long j = 0; j < convertedRectangles.size(); ++j)
     {
         dlib::rectangle oneFaceRect = convertedRectangles[j];
         
         // detect all landmarks
         dlib::full_object_detection shape = sp(img, oneFaceRect);
-        
-        
-        
-        
-        matrix<rgb_pixel> face_chip;
-        extract_image_chip(img2, get_face_chip_details(shape,150,0.25), face_chip);
-        faces.push_back(move(face_chip));
-        // and draw them into the image (samplebuffer)
-        
-        
-        
-        
-        
-        CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-        const int pixels_w = (int)(oneFaceRect.right() - oneFaceRect.left());
-        const int pixels_h = (int)(oneFaceRect.bottom() - oneFaceRect.top());
-        const int bytesPerRow = 4 * pixels_w;
-        CGContextRef bmContext = CGBitmapContextCreate(NULL, pixels_w,
-                                                       pixels_h, 8,bytesPerRow,
-                                                       colorSpace, kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedLast);
-        
-        long position = 0;
-        char * data = (char *)CGBitmapContextGetData(bmContext);
-        
-        
-        
-        for (int i = (int)oneFaceRect.top(); i < oneFaceRect.bottom(); i++){
-            if (i < 0 || i >= height){
-                continue ;
-            }
-            for(int j = (int)oneFaceRect.left(); j < oneFaceRect.right(); j++){
-                if (j < 0 || j >= width){
-                    continue ;
-                }
-                dlib::bgr_pixel pixel = img[i][j];
-                long bufferLocation =  position * 4;//j * 512  + i; //(row * width + column) * 4;
-                data[bufferLocation] =  pixel.blue;
-                data[bufferLocation + 1] = pixel.green;
-                data[bufferLocation + 2] = pixel.red;
-                data[bufferLocation + 3] = 255;
-                position++;
-            }
-        }
-        CGImageRef newImage = CGBitmapContextCreateImage(bmContext);
-        
-        UIImage *image = [[UIImage alloc] initWithCGImage:newImage];
-        CGImageRelease(newImage);
-        CGContextRelease(bmContext);
-        
-        CGColorSpaceRelease(colorSpace);
-        
-        
-        
-        
-        
-        
         for (unsigned long k = 0; k < shape.num_parts(); k++) {
             dlib::point p = shape.part(k);
             draw_solid_circle(img, p, 5, dlib::rgb_pixel(0, 255, 255));
         }
-    }
-        std::vector<matrix<float,0,1>> desc = net(faces);
-    if (self.imageRecognize){
-        self.imageRecognize = false;
-        face_descriptors = desc;
-    }
-    
-    if (self.imageRecognizeCheck){
-        const float value = length(face_descriptors[0]-desc[0]);
-        if ( value < 0.5)
-        {
-            NSLog(@"recognized face found %f",value);
+        
+        if (recCount > 5 ){
+            recCount = 0;
+        }  else {
+            continue;
+        }
+        if (recCount == 0){
+            std::vector<matrix<rgb_pixel>> faces;
+            
+            matrix<rgb_pixel> face_chip;
+            extract_image_chip(img2, get_face_chip_details(shape,150,0.25), face_chip);
+            faces.push_back(move(face_chip));
+            // and draw them into the image (samplebuffer)
+            
+            
+            std::vector<matrix<float,0,1>> desc = net(faces);
+            
+            if (self.imageRecognizeCheck){
+                if (fidArray.count != 0){
+                    UIImage *image;
+                    if (length(input_descriptor - desc[0]) < 0.5){
+                        image = input_image;
+                    }
+                    [self.faceDelegate onRecognised:image];
+                }
+            } else {
+                BOOL found = NO;
+                for (int index = 0; index < face_descriptors.size(); index++ ){
+                    matrix<float,0,1> face_id = face_descriptors[index];
+                    if ( length(face_id - desc[0]) < 0.4){
+                        NSLog(@"face recognised previously");
+                        found = YES;
+                        break;
+                    }
+                }
+                if (!found){
+                    face_descriptors.push_back(desc[0]);
+                    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+                    const int pixels_w = (int)(oneFaceRect.right() - oneFaceRect.left());
+                    const int pixels_h = (int)(oneFaceRect.bottom() - oneFaceRect.top());
+                    const int bytesPerRow = 4 * pixels_w;
+                    CGContextRef bmContext = CGBitmapContextCreate(NULL, pixels_w,
+                                                                   pixels_h, 8,bytesPerRow,
+                                                                   colorSpace, kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedLast);
+                    
+                    long position = 0;
+                    char * data = (char *)CGBitmapContextGetData(bmContext);
+                    
+                    
+                    
+                    for (int i = (int)oneFaceRect.top(); i < oneFaceRect.bottom(); i++){
+                        if (i < 0 || i >= height){
+                            continue ;
+                        }
+                        for(int j = (int)oneFaceRect.left(); j < oneFaceRect.right(); j++){
+                            if (j < 0 || j >= width){
+                                continue ;
+                            }
+                            dlib::bgr_pixel pixel = img[i][j];
+                            long bufferLocation =  position * 4;//j * 512  + i; //(row * width + column) * 4;
+                            data[bufferLocation] =  pixel.blue;
+                            data[bufferLocation + 1] = pixel.green;
+                            data[bufferLocation + 2] = pixel.red;
+                            data[bufferLocation + 3] = 255;
+                            position++;
+                        }
+                    }
+                    CGImageRef newImage = CGBitmapContextCreateImage(bmContext);
+                    
+                    UIImage *image = [[UIImage alloc] initWithCGImage:newImage];
+                    CGImageRelease(newImage);
+                    CGContextRelease(bmContext);
+                    
+                    CGColorSpaceRelease(colorSpace);
+                    
+                    FaceID *fid = [[FaceID alloc] init:j withImage:image];
+                    [fidArray addObject:fid];
+                    //                [self.faceDelegate didFoundFaces:fidArray];
+                    [self.faceDelegate onFaceFound:fid];
+                }
+            }
         }
     }
+//    std::vector<matrix<float,0,1>> desc = net(faces);
+//    if (self.imageRecognize){
+//        self.imageRecognize = false;
+//        face_descriptors = desc;
+//    }
+//
+//    if (self.imageRecognizeCheck){
+//        const float value = length(face_descriptors[0]-desc[0]);
+//        if ( value < 0.5)
+//        {
+//            NSLog(@"recognized face found %f",value);
+//        }
+//    }
     
     
     
@@ -263,6 +315,27 @@ std::vector<matrix<rgb_pixel>> jitter_image(
         myConvertedRects.push_back(dlibRect);
     }
     return myConvertedRects;
+}
+
+//float __len(float l1, float l2){
+//
+//}
+
+@end
+
+@interface FaceID(){
+    
+}
+
+
+
+@end
+@implementation FaceID
+-(instancetype)init:(NSInteger)fid withImage:(UIImage *)_img{
+    self = [super init];
+    self.face_id = fid;
+    self.faceImage = _img;
+    return self;
 }
 
 
