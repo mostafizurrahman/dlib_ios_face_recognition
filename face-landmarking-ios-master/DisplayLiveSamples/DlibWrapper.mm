@@ -152,7 +152,54 @@ std::vector<matrix<rgb_pixel>> jitter_image(
         extract_image_chip(img2, get_face_chip_details(shape,150,0.25), face_chip);
         faces.push_back(move(face_chip));
         // and draw them into the image (samplebuffer)
-//        UIImage *image = [self getImage:face_chip];
+        
+        
+        
+        
+        
+        CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+        const int pixels_w = (int)(oneFaceRect.right() - oneFaceRect.left());
+        const int pixels_h = (int)(oneFaceRect.bottom() - oneFaceRect.top());
+        const int bytesPerRow = 4 * pixels_w;
+        CGContextRef bmContext = CGBitmapContextCreate(NULL, pixels_w,
+                                                       pixels_h, 8,bytesPerRow,
+                                                       colorSpace, kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedLast);
+        
+        long position = 0;
+        char * data = (char *)CGBitmapContextGetData(bmContext);
+        
+        
+        
+        for (int i = (int)oneFaceRect.top(); i < oneFaceRect.bottom(); i++){
+            if (i < 0 || i >= height){
+                continue ;
+            }
+            for(int j = (int)oneFaceRect.left(); j < oneFaceRect.right(); j++){
+                if (j < 0 || j >= width){
+                    continue ;
+                }
+                dlib::bgr_pixel pixel = img[i][j];
+                long bufferLocation =  position * 4;//j * 512  + i; //(row * width + column) * 4;
+                data[bufferLocation] =  pixel.blue;
+                data[bufferLocation + 1] = pixel.green;
+                data[bufferLocation + 2] = pixel.red;
+                data[bufferLocation + 3] = 255;
+                position++;
+            }
+        }
+        CGImageRef newImage = CGBitmapContextCreateImage(bmContext);
+        
+        UIImage *image = [[UIImage alloc] initWithCGImage:newImage];
+        CGImageRelease(newImage);
+        CGContextRelease(bmContext);
+        
+        CGColorSpaceRelease(colorSpace);
+        
+        
+        
+        
+        
+        
         for (unsigned long k = 0; k < shape.num_parts(); k++) {
             dlib::point p = shape.part(k);
             draw_solid_circle(img, p, 5, dlib::rgb_pixel(0, 255, 255));
@@ -218,34 +265,6 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     return myConvertedRects;
 }
 
--(UIImage *)getImage:(dlib::matrix<rgb_pixel>) pixels{
-    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    const int pixels_w = (int)pixels.nc();
-    const int pixels_h = (int)pixels.nr();
-    const int bytesPerRow = 4 * pixels_w;
-    CGContextRef bmContext = CGBitmapContextCreate(NULL, pixels_w,
-                                                   pixels_h, 8,bytesPerRow,
-                                                   colorSpace, kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedFirst);
-    CGColorSpaceRelease(colorSpace);
-    long position = 0;
-    char * data = (char *)CGBitmapContextGetData(bmContext);
-    for (int i = 0; i < pixels_h; i++){
-        for(int j = 0; j < pixels_w; j++){
-            auto pixel = pixels(i, j);
-            long bufferLocation = position * 4; //(row * width + column) * 4;
-            data[bufferLocation] = pixel.blue;
-            data[bufferLocation + 1] = pixel.green;
-            data[bufferLocation + 2] = pixel.red;
-            data[bufferLocation + 3] = 1;
-            position++;
-        }
-    }
-    CGImageRef newImage = CGBitmapContextCreateImage(bmContext);
 
-    UIImage *image = [[UIImage alloc] initWithCGImage:newImage];
-    CGImageRelease(newImage);
-    CGContextRelease(bmContext);
-    return image;
-}
 
 @end
