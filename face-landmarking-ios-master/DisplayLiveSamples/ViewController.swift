@@ -47,6 +47,8 @@ class ViewController: UIViewController {
 
         self.view.bringSubview(toFront: self.faceCollectionView)
         self.sessionHandler.wrapper?.faceDelegate = self
+        self.sessionHandler.label = self.recogLable
+        self.sessionHandler.imageView = self.recogImageView
     }
     
     
@@ -61,6 +63,9 @@ class ViewController: UIViewController {
     
     @IBOutlet weak var faceCollectionView: UICollectionView!
     
+    @IBAction func skipPrediction(_ sender: UISwitch) {
+        self.sessionHandler.skipPrediction = sender.isOn
+    }
     
 }
 
@@ -102,5 +107,6 @@ extension ViewController:RecognitionDelegate, UICollectionViewDelegate, UICollec
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         self.sessionHandler.wrapper?.recognize(at: indexPath.row)
         self.findingLabel.isHidden = !(self.sessionHandler.wrapper?.imageRecognizeCheck ?? true)
+        self.recogLable.isHidden = true
     }
 }

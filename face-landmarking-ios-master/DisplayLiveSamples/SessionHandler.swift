@@ -14,9 +14,10 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
     let sampleQueue = DispatchQueue(label: "com.zweigraf.DisplayLiveSamples.sampleQueue", attributes: [])
     let faceQueue = DispatchQueue(label: "com.zweigraf.DisplayLiveSamples.faceQueue", attributes: [])
     let wrapper = DlibWrapper()
-    
+    var label:UILabel?
+    var imageView:UIImageView?
     var currentMetadata: [AnyObject]
-    
+    var skipPrediction = false
     override init() {
         currentMetadata = []
         super.init()
@@ -65,7 +66,7 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
     // MARK: AVCaptureVideoDataOutputSampleBufferDelegate
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
 
-        if !currentMetadata.isEmpty {
+        if !currentMetadata.isEmpty && self.skipPrediction {
             let boundsArray = currentMetadata
                 .flatMap { $0 as? AVMetadataFaceObject }
                 .map { (faceObject) -> NSValue in
@@ -74,7 +75,19 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
             }
             
             wrapper?.doWork(on: sampleBuffer, inRects: boundsArray)
+//            DispatchQueue.main.async {
+//                self.label?.isHidden = false
+//                self.imageView?.isHidden = false
+//
+//            }
         }
+//        else{
+//            DispatchQueue.main.async {
+//                self.label?.isHidden = true
+//                self.imageView?.isHidden = true
+//                
+//            }
+//        }
 
         layer.enqueue(sampleBuffer)
     }
