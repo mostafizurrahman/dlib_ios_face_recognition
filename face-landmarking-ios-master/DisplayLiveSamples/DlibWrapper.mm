@@ -16,7 +16,7 @@
 #include <dlib/image_io.h>
 #include <dlib/dnn.h>
 #include <dlib/matrix.h>
-
+#define VECTOR_COUNT 128
 using namespace dlib;
 using namespace std;
 template <template <int,template<typename>class,int,typename> class block, int N, template<typename>class BN, typename SUBNET>
@@ -168,8 +168,7 @@ std::vector<matrix<rgb_pixel>> jitter_image(
 //    recCount++;
     int indices[15] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
     int idx = 0;
-    for (unsigned long j = 0; j < convertedRectangles.size(); ++j)
-    {
+    for (unsigned long j = 0; j < convertedRectangles.size(); ++j) {
         dlib::rectangle oneFaceRect = convertedRectangles[j];
         
         // detect all landmarks
@@ -276,8 +275,8 @@ std::vector<matrix<rgb_pixel>> jitter_image(
 
 -(void)setFaceVectors:(float *)vectors {
     matrix<float,0,1> desc;
-    desc.set_size(128, 1);
-    for(int j = 0; j < 128; j++){
+    desc.set_size(VECTOR_COUNT, 1);
+    for(int j = 0; j < VECTOR_COUNT; j++){
         desc(j,0) = vectors[j];
     }
     face_descriptors.push_back(desc);
@@ -288,7 +287,7 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     self.imageRecognizeCheck = NO;
 //    dispatch_async(dispatch_get_global_queue(0, 0), ^{
         usleep(300);
-        for(int i = 0; i < 128; i++){
+        for(int i = 0; i < VECTOR_COUNT; i++){
             //        vector[i] = vectors[i];
             input_descriptor(i,0) = vectors[i];
         }

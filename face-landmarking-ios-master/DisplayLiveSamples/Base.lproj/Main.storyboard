@@ -246,6 +246,12 @@
                                     <action selector="skipPrediction:" destination="BYZ-38-t0r" eventType="valueChanged" id="M1Y-15-RJk"/>
                                 </connections>
                             </switch>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Multiple recognition" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="GCa-ue-f4a">
+                                <rect key="frame" x="358" y="7" width="131.5" height="17"/>
+                                <fontDescription key="fontDescription" type="system" weight="medium" pointSize="14"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
@@ -253,10 +259,12 @@
                             <constraint firstItem="Pre-7C-4fj" firstAttribute="width" secondItem="8bC-Xf-vdC" secondAttribute="width" multiplier="0.7" id="5kd-P6-zfB"/>
                             <constraint firstItem="SCh-ny-jjI" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="CtS-tD-n2w"/>
                             <constraint firstItem="wfy-db-euE" firstAttribute="top" secondItem="vXs-iR-kqh" secondAttribute="bottom" id="Ive-z0-sJo"/>
+                            <constraint firstItem="GCa-ue-f4a" firstAttribute="centerY" secondItem="SCh-ny-jjI" secondAttribute="centerY" id="QCQ-uF-zag"/>
                             <constraint firstItem="Ysz-Wt-zyC" firstAttribute="top" secondItem="y3c-jy-aDJ" secondAttribute="bottom" id="a9a-Ht-9g2"/>
                             <constraint firstAttribute="trailingMargin" secondItem="DuK-sj-GlH" secondAttribute="trailing" id="bji-NY-a3J"/>
                             <constraint firstItem="DuK-sj-GlH" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leadingMargin" id="fTS-TJ-JYo"/>
                             <constraint firstItem="wfy-db-euE" firstAttribute="top" secondItem="uM0-OY-Orh" secondAttribute="bottom" constant="16" id="hQD-cN-wAe"/>
+                            <constraint firstItem="GCa-ue-f4a" firstAttribute="leading" secondItem="SCh-ny-jjI" secondAttribute="trailing" id="ion-ra-NuE"/>
                             <constraint firstItem="A4P-u9-ieh" firstAttribute="top" secondItem="y3c-jy-aDJ" secondAttribute="bottom" constant="8" id="jwf-gM-Hfz"/>
                             <constraint firstItem="SCh-ny-jjI" firstAttribute="top" secondItem="y3c-jy-aDJ" secondAttribute="bottom" id="k93-8S-Pjl"/>
                             <constraint firstItem="uM0-OY-Orh" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="16" id="lsS-xz-UR4"/>
