@@ -8,14 +8,14 @@
 
 #import <Foundation/Foundation.h>
 #import <CoreMedia/CoreMedia.h>
-#import <UIKit/UIKit.h>
+#import <UIKit/UIKit.h>//
 
 
 
 
 @interface FaceID:NSObject
 @property (readwrite) NSInteger face_id;
-@property (readwrite) UIImage *faceImage;
+@property (readwrite) UIImage * _Nullable faceImage;
 -(instancetype)init:(NSInteger)fid withImage:(UIImage *)_img;
 
 @end
@@ -26,12 +26,15 @@
 @end
 @interface DlibWrapper : NSObject
 
-- (instancetype)init;
-- (void)doWorkOnSampleBuffer:(CMSampleBufferRef)sampleBuffer inRects:(NSArray<NSValue *> *)rects;
+- (instancetype _Nullable )init;
+- (void)doWorkOnSampleBuffer:(CMSampleBufferRef _Nullable )sampleBuffer inRects:(NSArray<NSValue *> *_Nullable)rects;
 - (void)prepare;
 @property (readwrite) BOOL imageRecognize;
 @property (readwrite) BOOL imageRecognizeCheck;
-@property (readwrite, weak) id<RecognitionDelegate> faceDelegate;
+@property (readwrite, weak) id<RecognitionDelegate> _Nullable faceDelegate;
 -(void)performRecognition;
 -(void)recognizeAt:(NSInteger)recIndex;
+-(void)recognizeVector:(float *)vectors;
+
+
 @end

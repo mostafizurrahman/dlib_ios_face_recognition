@@ -66,7 +66,7 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
     // MARK: AVCaptureVideoDataOutputSampleBufferDelegate
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
 
-        if !currentMetadata.isEmpty && self.skipPrediction {
+        if !currentMetadata.isEmpty  {
             let boundsArray = currentMetadata
                 .flatMap { $0 as? AVMetadataFaceObject }
                 .map { (faceObject) -> NSValue in

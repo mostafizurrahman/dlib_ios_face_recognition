@@ -15,7 +15,7 @@
 #include <dlib/image_processing.h>
 #include <dlib/image_io.h>
 #include <dlib/dnn.h>
-
+#include <dlib/matrix.h>
 
 using namespace dlib;
 using namespace std;
@@ -60,7 +60,7 @@ input_rgb_image_sized<150>
     UIImage *input_image;
     NSInteger recCount;
     NSMutableArray *fidArray;
-    
+    float vector[128];
     
     
     
@@ -82,6 +82,7 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     }
     recCount = 0;
     fidArray = [[NSMutableArray alloc] init];
+    input_descriptor.set_size(128, 1);
     return self;
 }
 
@@ -170,10 +171,10 @@ std::vector<matrix<rgb_pixel>> jitter_image(
         
         // detect all landmarks
         dlib::full_object_detection shape = sp(img, oneFaceRect);
-        for (unsigned long k = 0; k < shape.num_parts(); k++) {
-            dlib::point p = shape.part(k);
-            draw_solid_circle(img, p, 5, dlib::rgb_pixel(0, 255, 255));
-        }
+//        for (unsigned long k = 0; k < shape.num_parts(); k++) {
+//            dlib::point p = shape.part(k);
+//            draw_solid_circle(img, p, 5, dlib::rgb_pixel(0, 255, 255));
+//        }
         
         if (recCount > 5 ){
             recCount = 0;
@@ -192,26 +193,18 @@ std::vector<matrix<rgb_pixel>> jitter_image(
             std::vector<matrix<float,0,1>> desc = net(faces);
             
             if (self.imageRecognizeCheck){
-                if (fidArray.count != 0){
-                    UIImage *image;
-                    if (length(input_descriptor - desc[0]) < 0.5){
-                        image = input_image;
-                    }
-                    [self.faceDelegate onRecognised:image];
-                }
-            } else {
-                BOOL found = NO;
-                for (int index = 0; index < face_descriptors.size(); index++ ){
-                    matrix<float,0,1> face_id = face_descriptors[index];
-                    float value = length(face_id - desc[0]);
-                    if (value  < 0.4){
-                        NSLog(@"face recognised previously");
-                        found = YES;
-                        break;
-                    }
-                }
-                if (!found){
-                    face_descriptors.push_back(desc[0]);
+                
+                
+                float value = 0;
+//                for (int i = 0; i < 128; i++){
+//                    const float val = vector[i] - desc[0](0,i);
+//                    const float sqr = val * val;
+//                    const float root = sqrt(sqr);
+//                    value  += root;
+//                }
+//                value = value / 128;
+                value = length(input_descriptor - desc[0]);
+                if (value < 0.5){
                     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
                     const int pixels_w = (int)(oneFaceRect.right() - oneFaceRect.left());
                     const int pixels_h = (int)(oneFaceRect.bottom() - oneFaceRect.top());
@@ -219,12 +212,8 @@ std::vector<matrix<rgb_pixel>> jitter_image(
                     CGContextRef bmContext = CGBitmapContextCreate(NULL, pixels_w,
                                                                    pixels_h, 8,bytesPerRow,
                                                                    colorSpace, kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedLast);
-                    
                     long position = 0;
                     char * data = (char *)CGBitmapContextGetData(bmContext);
-                    
-                    
-                    
                     for (int i = (int)oneFaceRect.top(); i < oneFaceRect.bottom(); i++){
                         if (i < 0 || i >= height){
                             continue ;
@@ -235,9 +224,9 @@ std::vector<matrix<rgb_pixel>> jitter_image(
                             }
                             dlib::bgr_pixel pixel = img[i][j];
                             long bufferLocation =  position * 4;//j * 512  + i; //(row * width + column) * 4;
-                            data[bufferLocation] =  pixel.blue;
+                            data[bufferLocation] = pixel.red;
                             data[bufferLocation + 1] = pixel.green;
-                            data[bufferLocation + 2] = pixel.red;
+                            data[bufferLocation + 2] = pixel.blue;
                             data[bufferLocation + 3] = 255;
                             position++;
                         }
@@ -247,40 +236,15 @@ std::vector<matrix<rgb_pixel>> jitter_image(
                     UIImage *image = [[UIImage alloc] initWithCGImage:newImage];
                     CGImageRelease(newImage);
                     CGContextRelease(bmContext);
-                    
                     CGColorSpaceRelease(colorSpace);
-                    
-                    FaceID *fid = [[FaceID alloc] init:j withImage:image];
-                    [fidArray addObject:fid];
-                    //                [self.faceDelegate didFoundFaces:fidArray];
-                    [self.faceDelegate onFaceFound:fid];
+                    [self.faceDelegate onRecognised:image];
+                    break;
+                } else {
+                    [self.faceDelegate onRecognised:nil];
                 }
             }
         }
     }
-//    std::vector<matrix<float,0,1>> desc = net(faces);
-//    if (self.imageRecognize){
-//        self.imageRecognize = false;
-//        face_descriptors = desc;
-//    }
-//
-//    if (self.imageRecognizeCheck){
-//        const float value = length(face_descriptors[0]-desc[0]);
-//        if ( value < 0.5)
-//        {
-//            NSLog(@"recognized face found %f",value);
-//        }
-//    }
-    
-    
-    
-//    for (int i = 0; i < face_descriptors.size(); i++){
-//        const matrix<float,0,1> data = face_descriptors[i];
-//        NSLog(@"column____ %ld_____row ____%ld",data.nc(),data.nr());
-//        for (int j = 0; j < data.size(); j++ ){
-//            NSLog(@"data is %f", data(0,j));
-//        }
-//    }
     // lets put everything back where it belongs
     CVPixelBufferLockBaseAddress(imageBuffer, 0);
 
@@ -316,6 +280,22 @@ std::vector<matrix<rgb_pixel>> jitter_image(
         myConvertedRects.push_back(dlibRect);
     }
     return myConvertedRects;
+}
+
+
+
+-(void)recognizeVector:(float *)vectors {
+//    input_descriptor.set_size(0, 128);
+    self.imageRecognizeCheck = NO;
+//    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        usleep(300);
+        for(int i = 0; i < 128; i++){
+            //        vector[i] = vectors[i];
+            input_descriptor(i,0) = vectors[i];
+        }
+        self.imageRecognizeCheck = YES;
+//    });
+    
 }
 
 //float __len(float l1, float l2){

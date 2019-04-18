@@ -9,8 +9,15 @@
 import UIKit
 import AVFoundation
 
+struct UserData{
+    let imageName:String
+    let faceVector:[Float]
+    
+}
+
 class ViewController: UIViewController {
     let sessionHandler = SessionHandler()
+    let pointerToFloats = UnsafeMutablePointer<Float>.allocate(capacity: 128)
     @IBOutlet weak var recogImageView: UIImageView!
     @IBOutlet weak var findingLabel: UILabel!
     
@@ -18,8 +25,31 @@ class ViewController: UIViewController {
     @IBOutlet weak var preview: UIView!
     var fid_array:[FaceID] = []
     @IBOutlet var btn: [UIButton]!
+    var userDataArray:[UserData] = []
+    var personName:String = ""
+    var selectedIndex = -1
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        if let path = Bundle.main.path(forResource: "face_data", ofType: "txt") {
+            let data = try! String(contentsOfFile: path)
+            let lines = data.split(separator: "\n")
+            for line in lines {
+                let dataArray = line.split(separator: "_")
+                var floats = [Float]()
+                for i in 1...128 {
+                    let str_f = dataArray[i]
+                    let val_f = Float(str_f) ?? 0
+                    floats.append(val_f)
+                }
+                let person = dataArray[0]
+                let data = UserData(imageName: String(person), faceVector: floats)
+                self.userDataArray.append(data)
+            }
+        }
+        print("done")
+        
         // Do any additional setup after loading the view, typically from a nib.
     }
 
@@ -71,13 +101,24 @@ class ViewController: UIViewController {
 
 extension ViewController:RecognitionDelegate, UICollectionViewDelegate, UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return self.fid_array.count
+        return self.userDataArray.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "FID", for: indexPath)
+        let data =  self.userDataArray[indexPath.row]
         if let _imageView = cell.viewWithTag(121) as? UIImageView {
-            _imageView.image = self.fid_array[indexPath.row].faceImage
+            let person = data.imageName
+            let image = UIImage(named: person )
+            _imageView.image = image
+            _imageView.layer.cornerRadius = _imageView.frame.width / 2
+            _imageView.layer.masksToBounds = true
+            _imageView.layer.borderColor = self.selectedIndex
+                == indexPath.row ? UIColor.red.cgColor : UIColor.gray.cgColor
+            _imageView.layer.borderWidth = 2
+        }
+        if let name = cell.viewWithTag(120) as? UILabel {
+            name.text = data.imageName
         }
         return cell
     }
@@ -97,16 +138,40 @@ extension ViewController:RecognitionDelegate, UICollectionViewDelegate, UICollec
     }
     
     
+    
     func onRecognised(_ image: UIImage?) {
         DispatchQueue.main.async {
             self.recogImageView.image = image
             self.recogLable.isHidden = image == nil
-            
+            self.recogLable.text = self.personName
         }
     }
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        self.sessionHandler.wrapper?.recognize(at: indexPath.row)
-        self.findingLabel.isHidden = !(self.sessionHandler.wrapper?.imageRecognizeCheck ?? true)
-        self.recogLable.isHidden = true
+        if self.selectedIndex != -1 {
+            let s_indexPath = IndexPath(row: self.selectedIndex, section: 0)
+            if let item = collectionView.cellForItem(at: s_indexPath) {
+                if let _imgView = item.viewWithTag(121) {
+                    _imgView.layer.borderColor = UIColor.gray.cgColor
+                }
+            }
+        }
+        
+        if let item = collectionView.cellForItem(at: indexPath){
+            if let imageView = item.viewWithTag(121) {
+                imageView.layer.borderColor = UIColor.red.cgColor
+            }
+        }
+        self.selectedIndex = indexPath.row
+        let data = self.userDataArray[indexPath.row]
+        
+        // Copying our data into the freshly allocated memory
+        for i in 0...127 {
+            pointerToFloats[i] = data.faceVector[i]
+        }
+        
+        self.sessionHandler.wrapper?.recognizeVector(pointerToFloats)
+
+        self.personName = "recognised\n\(data.imageName)"
+        collectionView.reloadData()
     }
 }
