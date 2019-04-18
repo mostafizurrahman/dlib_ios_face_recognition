@@ -62,7 +62,7 @@ input_rgb_image_sized<150>
     NSMutableArray *fidArray;
     float vector[128];
     
-    
+    BOOL shouldSkip;
     
 }
 anet_type net;
@@ -165,83 +165,74 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     
     // for every detected face
     
-    recCount++;
+//    recCount++;
+    int indices[15] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+    int idx = 0;
     for (unsigned long j = 0; j < convertedRectangles.size(); ++j)
     {
         dlib::rectangle oneFaceRect = convertedRectangles[j];
         
         // detect all landmarks
         dlib::full_object_detection shape = sp(img, oneFaceRect);
-//        for (unsigned long k = 0; k < shape.num_parts(); k++) {
-//            dlib::point p = shape.part(k);
-//            draw_solid_circle(img, p, 5, dlib::rgb_pixel(0, 255, 255));
-//        }
-        
-        if (recCount > 5 ){
-            recCount = 0;
-        }  else {
-            continue;
-        }
         if (recCount == 0){
             std::vector<matrix<rgb_pixel>> faces;
-            
             matrix<rgb_pixel> face_chip;
             extract_image_chip(img2, get_face_chip_details(shape,150,0.25), face_chip);
             faces.push_back(move(face_chip));
-            // and draw them into the image (samplebuffer)
-            
-            
             std::vector<matrix<float,0,1>> desc = net(faces);
-            
             if (self.imageRecognizeCheck){
                 
-                
-                float value = 0;
-//                for (int i = 0; i < 128; i++){
-//                    const float val = vector[i] - desc[0](0,i);
-//                    const float sqr = val * val;
-//                    const float root = sqrt(sqr);
-//                    value  += root;
-//                }
-//                value = value / 128;
-                value = length(input_descriptor - desc[0]);
-                if (value < 0.5){
-                    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-                    const int pixels_w = (int)(oneFaceRect.right() - oneFaceRect.left());
-                    const int pixels_h = (int)(oneFaceRect.bottom() - oneFaceRect.top());
-                    const int bytesPerRow = 4 * pixels_w;
-                    CGContextRef bmContext = CGBitmapContextCreate(NULL, pixels_w,
-                                                                   pixels_h, 8,bytesPerRow,
-                                                                   colorSpace, kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedLast);
-                    long position = 0;
-                    char * data = (char *)CGBitmapContextGetData(bmContext);
-                    for (int i = (int)oneFaceRect.top(); i < oneFaceRect.bottom(); i++){
-                        if (i < 0 || i >= height){
-                            continue ;
-                        }
-                        for(int j = (int)oneFaceRect.left(); j < oneFaceRect.right(); j++){
-                            if (j < 0 || j >= width){
-                                continue ;
-                            }
-                            dlib::bgr_pixel pixel = img[i][j];
-                            long bufferLocation =  position * 4;//j * 512  + i; //(row * width + column) * 4;
-                            data[bufferLocation] = pixel.red;
-                            data[bufferLocation + 1] = pixel.green;
-                            data[bufferLocation + 2] = pixel.blue;
-                            data[bufferLocation + 3] = 255;
-                            position++;
+                if (!self.singleRecognizer){
+                    for(int i = 0; i < face_descriptors.size(); i++){
+                        if(length(face_descriptors[i] - desc[0]) < 0.5){
+                            indices[idx++] = i;
+                            break;
                         }
                     }
-                    CGImageRef newImage = CGBitmapContextCreateImage(bmContext);
-                    
-                    UIImage *image = [[UIImage alloc] initWithCGImage:newImage];
-                    CGImageRelease(newImage);
-                    CGContextRelease(bmContext);
-                    CGColorSpaceRelease(colorSpace);
-                    [self.faceDelegate onRecognised:image];
-                    break;
                 } else {
-                    [self.faceDelegate onRecognised:nil];
+                    float value = 0;
+                    value = length(input_descriptor - desc[0]);
+                    if (value < 0.5){
+                        CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+                        const int pixels_w = (int)(oneFaceRect.right() - oneFaceRect.left());
+                        const int pixels_h = (int)(oneFaceRect.bottom() - oneFaceRect.top());
+                        const int bytesPerRow = 4 * pixels_w;
+                        CGContextRef bmContext = CGBitmapContextCreate(NULL, pixels_w,
+                                                                       pixels_h, 8,bytesPerRow,
+                                                                       colorSpace, kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedLast);
+                        long position = 0;
+                        char * data = (char *)CGBitmapContextGetData(bmContext);
+                        for (int i = (int)oneFaceRect.top(); i < oneFaceRect.bottom(); i++){
+                            if (i < 0 || i >= height){
+                                continue ;
+                            }
+                            for(int j = (int)oneFaceRect.left(); j < oneFaceRect.right(); j++){
+                                if (j < 0 || j >= width){
+                                    continue ;
+                                }
+                                dlib::bgr_pixel pixel = img[i][j];
+                                long bufferLocation =  position * 4;//j * 512  + i; //(row * width + column) * 4;
+                                data[bufferLocation] = pixel.red;
+                                data[bufferLocation + 1] = pixel.green;
+                                data[bufferLocation + 2] = pixel.blue;
+                                data[bufferLocation + 3] = 255;
+                                position++;
+                            }
+                        }
+                        CGImageRef newImage = CGBitmapContextCreateImage(bmContext);
+                        
+                        UIImage *image = [[UIImage alloc] initWithCGImage:newImage];
+                        CGImageRelease(newImage);
+                        CGContextRelease(bmContext);
+                        CGColorSpaceRelease(colorSpace);
+                        [self.faceDelegate onRecognised:image];
+                        break;
+                    } else {
+                        [self.faceDelegate onRecognised:nil];
+                    }
+                }
+                if (!self.singleRecognizer){
+                    [self.faceDelegate onFindIndices:indices count:idx];
                 }
             }
         }
@@ -283,7 +274,14 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     return myConvertedRects;
 }
 
-
+-(void)setFaceVectors:(float *)vectors {
+    matrix<float,0,1> desc;
+    desc.set_size(128, 1);
+    for(int j = 0; j < 128; j++){
+        desc(j,0) = vectors[j];
+    }
+    face_descriptors.push_back(desc);
+}
 
 -(void)recognizeVector:(float *)vectors {
 //    input_descriptor.set_size(0, 128);

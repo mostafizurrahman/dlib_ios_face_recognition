@@ -17,6 +17,10 @@ struct UserData{
 
 class ViewController: UIViewController {
     let sessionHandler = SessionHandler()
+    
+    @IBOutlet var nameLabels: [UILabel]!
+    @IBOutlet weak var labelContainerView: UIView!
+    
     let pointerToFloats = UnsafeMutablePointer<Float>.allocate(capacity: 128)
     @IBOutlet weak var recogImageView: UIImageView!
     @IBOutlet weak var findingLabel: UILabel!
@@ -48,7 +52,17 @@ class ViewController: UIViewController {
                 self.userDataArray.append(data)
             }
         }
+        
         print("done")
+        
+        if let wrapper = self.sessionHandler.wrapper {
+            for data in self.userDataArray {
+                for i in 0...127 {
+                    pointerToFloats[i] = data.faceVector[i]
+                }
+                wrapper.setFaceVectors(pointerToFloats)
+            }
+        }
         
         // Do any additional setup after loading the view, typically from a nib.
     }
@@ -94,12 +108,43 @@ class ViewController: UIViewController {
     @IBOutlet weak var faceCollectionView: UICollectionView!
     
     @IBAction func skipPrediction(_ sender: UISwitch) {
-        self.sessionHandler.skipPrediction = sender.isOn
+        if let wrapper = self.sessionHandler.wrapper {
+            wrapper.imageRecognizeCheck = true
+            wrapper.singleRecognizer = !wrapper.singleRecognizer
+            self.faceCollectionView.isHidden = !wrapper.singleRecognizer
+            self.labelContainerView.isHidden = wrapper.singleRecognizer
+        }
+        
     }
-    
 }
 
 extension ViewController:RecognitionDelegate, UICollectionViewDelegate, UICollectionViewDataSource {
+    func onFindIndices(_ indices: UnsafeMutablePointer<Int32>?, count: Int32) {
+        DispatchQueue.main.async {
+            for label in self.nameLabels {
+                label.textColor = UIColor.red
+                label.backgroundColor = UIColor.clear
+            }
+            if count == 0 {
+                return
+            }
+            for i in 0...count-1 {
+                if let index = indices?[Int(i)],
+                    index != -1 {
+                    let data = self.userDataArray[Int(index)]
+                    for label in self.nameLabels {
+                        if let name = label.text,
+                            name.elementsEqual(data.imageName){
+                            label.textColor = UIColor.green
+                            label.backgroundColor = UIColor.lightGray
+                            break
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return self.userDataArray.count
     }

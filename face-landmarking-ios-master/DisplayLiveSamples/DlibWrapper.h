@@ -23,6 +23,7 @@
 -(void)didFoundFaces:(NSMutableArray *)fidArray;
 -(void)onFaceFound:(FaceID *)faceID;
 -(void)onRecognised:(nullable UIImage *)image;
+-(void)onFindIndices:(int [_Nullable])indices count:(const int)count;
 @end
 @interface DlibWrapper : NSObject
 
@@ -34,10 +35,10 @@
 @property (readwrite, weak) id<RecognitionDelegate> _Nullable faceDelegate;
 @property (readwrite) BOOL singleRecognizer;
 
-
+-(void)setFaceVectors:(float *)vectors;
 -(void)performRecognition;
 -(void)recognizeAt:(NSInteger)recIndex;
 -(void)recognizeVector:(float *)vectors;
-
+-(void)setFaceVectors:(float *)vectors;
 
 @end
