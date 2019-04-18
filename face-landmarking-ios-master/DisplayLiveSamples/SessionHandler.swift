@@ -52,14 +52,15 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
         session.commitConfiguration()
         
         let settings: [AnyHashable: Any] = [kCVPixelBufferPixelFormatTypeKey as AnyHashable: Int(kCVPixelFormatType_32BGRA)]
-        output.videoSettings = settings as! [String : Any]
+        output.videoSettings = settings as? [String : Any]
     
         // availableMetadataObjectTypes change when output is added to session.
         // before it is added, availableMetadataObjectTypes is empty
         metaOutput.metadataObjectTypes = [AVMetadataObject.ObjectType.face]
         
         wrapper?.prepare()
-        layer.transform = CATransform3DMakeScale(-1, 1, 1)
+        layer.transform = CATransform3DMakeScale(-1, 1, 1) // front camera
+//        layer.transform = CATransform3DMakeScale(-1, -1, 1) // back camera
         session.startRunning()
     }
     

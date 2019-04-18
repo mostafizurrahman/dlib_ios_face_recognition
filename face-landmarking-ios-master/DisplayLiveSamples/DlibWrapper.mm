@@ -83,6 +83,7 @@ std::vector<matrix<rgb_pixel>> jitter_image(
     recCount = 0;
     fidArray = [[NSMutableArray alloc] init];
     input_descriptor.set_size(128, 1);
+    self.singleRecognizer = YES;
     return self;
 }
 

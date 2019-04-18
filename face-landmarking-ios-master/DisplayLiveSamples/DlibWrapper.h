@@ -32,6 +32,9 @@
 @property (readwrite) BOOL imageRecognize;
 @property (readwrite) BOOL imageRecognizeCheck;
 @property (readwrite, weak) id<RecognitionDelegate> _Nullable faceDelegate;
+@property (readwrite) BOOL singleRecognizer;
+
+
 -(void)performRecognition;
 -(void)recognizeAt:(NSInteger)recIndex;
 -(void)recognizeVector:(float *)vectors;
